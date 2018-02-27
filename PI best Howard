@@ -1,0 +1,198 @@
+#!/usr/bin/env python2
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Sep  5 04:37:59 2017
+
+@author: shailendragurjar
+"""
+#Algorithm 1 : Howard
+import numpy as np
+
+states = 50
+actions = 2
+gamma = 0.9
+z = 50
+ave = 0
+for y in range(z):
+    states = 50
+    actions = 2
+    gamma = 0.9
+    np.random.seed(69)
+    T = np.reshape([np.random.sample() for i in range(states*actions*states)], [states, actions, states]) 
+    R = np.reshape([np.random.uniform(-1,1,states*actions*states)],[states, actions, states])
+    T = T/np.expand_dims(np.sum(T, axis=2), axis=2)
+
+
+    # initialize policy and value 
+    policy = [0 for s in range(states)]
+    V = np.zeros(states)
+
+    print "Initial policy", policy
+
+    is_value_changed = True
+    iterations = 0
+    while is_value_changed:
+        is_value_changed = False
+ #       iterations += 1
+        for s in range(states):
+            V[s] = sum([T[s,policy[s],s1] * (R[s,policy[s],s1] + gamma*V[s1]) for s1 in range(states)])
+
+        for s in range(states):
+            iterations += 1
+            q_best = V[s]
+            for a in range(actions):
+                q_sa = sum([T[s, a, s1] * (R[s, a, s1] + gamma * V[s1]) for s1 in range(states)])
+                if q_sa > q_best:
+                    policy[s] = a
+                    q_best = q_sa
+                    is_value_changed = True
+    
+    print "Final policy", policy
+    print V
+    print "Iterations:", iterations
+    ave += iterations
+
+# Algorithm 2: LP
+from scipy.optimize import linprog as lp
+states = 22
+actions = 2
+gamma = 0.9
+
+np.random.seed(13)
+T = np.reshape([np.random.sample() for i in range(states*actions*states)], [states, actions, states]) 
+R = np.reshape([np.random.uniform(-1,1,states*actions*states)],[states, actions, states])
+T = T/np.expand_dims(np.sum(T, axis=2), axis=2)
+
+# initialize policy and value
+policy = [0 for s in range(states)]
+
+x1, x2 = [], []
+c =np.ones(states,dtype=int)
+
+for i in range(states):
+    for a in range(actions):
+        coef_x1, coef_x2 = [0]*states, 0
+        for j in range(states):
+            coef_x1[j] = T[i][a][j]*gamma
+            coef_x2 += T[i][a][j]*R[i][a][j]
+            coef_x1[i] -= 1
+            x1.append(coef_x1)
+            x2.append(coef_x2)
+    x2_new = [i*-1 for i in x2]
+res = lp(c, x1, x2_new)
+V_LP = res.x
+            
+for s in range(states):
+    q_best = V_LP[s]
+    for a in range(actions):
+        q_sa = sum([T[s, a, s1] * (R[s, a, s1] + gamma * V_LP[s1]) for s1 in range(states)])
+        if q_sa > q_best:
+ #           print "State", s, ": q_sa", q_sa, "q_best", q_best
+            policy[s] = a
+            q_best = q_sa
+            
+print "Final policy"
+print policy
+print V_LP
+
+
+#Algorithm 3: BPSI
+states = 4
+actions = 2
+gamma = 0.9
+batch_size = 2
+batch_num = states/batch_size
+    
+np.random.seed(97)
+T = np.reshape([np.random.sample() for i in range(states*actions*states)], [states, actions, states]) 
+R = np.reshape([np.random.uniform(-1,1,states*actions*states)],[states, actions, states])
+T = T/np.expand_dims(np.sum(T, axis=2), axis=2)
+
+# initialize policy and value arbitrarily
+policy = [0 for s in range(states)]
+V = np.zeros(states)
+
+is_value_changed = True
+iterations = 0
+while is_value_changed:
+    is_value_changed = False
+    iterations += 1
+
+    for s in range(states):
+        V[s] = sum([T[s,policy[s],s1] * (R[s,policy[s],s1] + gamma*V[s1]) for s1 in range(states)])
+
+    for s in range(states):
+        q_best = V[s]
+        for a in range(actions):
+            j=batch_num
+            q_sa = sum([T[s, a, s1] * (R[s, a, s1] + gamma * V[s1]) for s1 in range(states)])
+            if q_sa > q_best:
+#                print "State", s, ": q_sa", q_sa, "q_best", q_best
+                while j :
+                    if (s in range(batch_size*j-batch_size,batch_size*j)):
+#                        print "S", s
+#                        print ("in J")
+                        policy[s] = a
+                        q_sa=q_best
+                        is_value_changed = True
+                        break
+                    else:
+#                        print "Not S", s
+#                       print("not in j the first time")
+                        j = j-1
+#                is_value_changed = True
+
+print "Final policy"
+print policy
+print V
+print "Iterations", iterations
+
+
+#Algorithm 4: MansourSingh
+import numpy as np
+
+states = 50
+actions = 2
+gamma = 0.9
+
+
+np.random.seed(69)
+T = np.reshape([np.random.sample() for i in range(states*actions*states)], [states, actions, states]) 
+R = np.reshape([np.random.uniform(-1,1,states*actions*states)],[states, actions, states])
+T = T/np.expand_dims(np.sum(T, axis=2), axis=2)
+
+
+# initialize policy and value 
+policy = [0 for s in range(states)]
+V = np.zeros(states)
+
+print "Initial policy", policy
+
+is_value_changed = True
+iterations = 0
+while is_value_changed:
+    is_value_changed = False
+#    iterations += 1
+    for s in range(states):
+        iterations += 1
+
+        V[s] = sum([T[s,policy[s],s1] * (R[s,policy[s],s1] + gamma*V[s1]) for s1 in range(states)])
+
+    for s in range(states):
+        q_best = V[s]
+        for a in range(actions):
+            q_sa = sum([T[s, a, s1] * (R[s, a, s1] + gamma * V[s1]) for s1 in range(states)])
+            if q_sa > q_best:
+                if(np.random.choice(np.arange(0,2), p=[0.5, 0.5])):
+                   policy[s] = a
+                   q_best = q_sa
+                   is_value_changed = True
+    
+print "Final policy", policy
+print V
+print "Iterations:", iterations
+
+
+
+for f in (1,5):
+    print f

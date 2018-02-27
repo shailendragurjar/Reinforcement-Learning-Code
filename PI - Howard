@@ -1,0 +1,74 @@
+#!/usr/bin/env python2
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Sep  5 02:20:24 2017
+
+@author: shailendragurjar
+"""
+
+import numpy as np
+
+states = 50
+actions = 2
+gamma = 0.99
+theta = 0.0001
+delta = 0
+iterations = 0
+
+
+np.random.seed(22)
+T = np.reshape([np.random.sample() for i in range(states*actions*states)], [states, actions, states]) 
+R = np.reshape([np.random.uniform(-1,1,states*actions*states)],[states, actions, states])
+T = T/np.expand_dims(np.sum(T, axis=2), axis=2)
+
+# initialize policy and value arbitrarily
+#policy = [0 for s in range(states)]
+policy = np.random.randint(2, size=states)
+
+def policy_eval(policy):
+    floor = 0
+    V = np.zeros(states)
+    while True:
+        delta=0
+        for s in range(states):
+            floor = V[s]
+            V[s] = sum([T[s,policy[s],s1] * (R[s,policy[s],s1] + gamma*V[s1]) for s1 in range(states)])
+  #          print "V[s]", V[s]
+            delta = max(0,abs(floor-V[s]))
+   #         print (floor,V[s])
+            if (delta < theta):
+                return V
+    return V
+
+# Policy iteration 
+is_value_changed = True
+iterations = 0   
+while is_value_changed:
+    is_value_changed = False
+    iterations += 1
+    print "Iterations", iterations
+    V = policy_eval(policy)
+    for s in range(states):
+        q_best = V[s]
+        # print "State", s, "q_best", q_best
+        for a in range(actions):
+            q_sa = sum([T[s, a, s1] * (R[s, a, s1] + gamma * V[s1]) for s1 in range(states)])
+            act.append(q_sa)
+
+            if q_sa > q_best:
+                q_best = q_sa
+         #       print "State", s, ": q_sa", q_sa, "q_best", q_best
+                if (policy[s] != a):
+                    policy[s] = a
+                    is_value_changed = True
+
+print "Final policy", policy
+print "Values", V
+print "Iterations", iterations
+
+                
+            
+   
+
+    
+    
